@@ -13,56 +13,57 @@ TOKEN = "8480224026:AAGh34J8WSl-GM2MDa0_xgiIO5fAPVcaI-s"
 START_IMAGE_URL = "https://t.me/ak3ic9/9"
 SNOZ_TT_IMAGE_URL = "https://t.me/ak3ic9/11"
 
-# Три канала для подписки
-CHANNEL_LINK_1 = "https://t.me/+m_mlxM7IlFk1MGRi"
-CHANNEL_LINK_2 = "https://t.me/+CYjeLBGTzjRhYjY6"
-CHANNEL_LINK_3 = "https://t.me/+6M0_d3RtYFs1NWUy"
+# Все каналы для подписки (теперь 7 каналов)
+CHANNEL_LINKS = [
+    ("📢 Канал 1", "https://t.me/+m_mlxM7IlFk1MGRi"),
+    ("📢 Канал 2", "https://t.me/+CYjeLBGTzjRhYjY6"),
+    ("📢 Канал 3", "https://t.me/+6M0_d3RtYFs1NWUy"),
+    ("📢 Канал 4", "https://t.me/+_PnxbVSghKVmM2Y6"),
+    ("📢 Канал 5", "https://t.me/+QHnpKS09KtRjNTgy"),
+    ("📢 Канал 6", "https://t.me/+r5haWSZxlCg0MzZk"),
+    ("📢 Канал 7", "https://t.me/solntsevpage")  # Последний публичный канал
+]
 
-# ID каналов
-CHANNEL_ID_1 = -1003265823270  # Первый канал
-CHANNEL_ID_2 = -1003082454363  # Второй канал
-CHANNEL_ID_3 = -1003536146111  # Третий канал
+# ID всех каналов (последний публичный по юзернейму)
+CHANNEL_IDS = [
+    -1003265823270,  # Канал 1
+    -1003082454363,  # Канал 2
+    -1003536146111,  # Канал 3
+    -1003080893872,  # Канал 4
+    -1002999004769,  # Канал 5
+    -1003067663410,  # Канал 6
+    "@solntsevpage"  # Канал 7 (публичный по юзернейму)
+]
 
 async def check_subscription(user_id, context):
-    """Проверка подписки на все три канала"""
+    """Проверка подписки на все каналы"""
     try:
-        logger.info(f"Проверка подписки для пользователя {user_id}")
+        subscribed_channels = 0
+        total_channels = len(CHANNEL_IDS)
         
-        # Проверка канала 1
-        try:
-            member1 = await context.bot.get_chat_member(chat_id=CHANNEL_ID_1, user_id=user_id)
-            subscribed1 = member1.status in ['member', 'administrator', 'creator']
-        except Exception as e1:
-            if "USER_NOT_PARTICIPANT" in str(e1) or "user not found" in str(e1).lower():
-                subscribed1 = False
-            else:
-                logger.error(f"Ошибка проверки канала 1: {e1}")
-                subscribed1 = False
+        for i, channel_id in enumerate(CHANNEL_IDS, 1):
+            try:
+                member = await context.bot.get_chat_member(chat_id=channel_id, user_id=user_id)
+                if member.status in ['member', 'administrator', 'creator']:
+                    subscribed_channels += 1
+                    logger.info(f"✓ Канал {i}: подписан")
+                else:
+                    logger.info(f"✗ Канал {i}: не подписан (статус: {member.status})")
+            except Exception as e:
+                error_msg = str(e)
+                if "USER_NOT_PARTICIPANT" in error_msg or "user not found" in error_msg.lower():
+                    logger.info(f"✗ Канал {i}: не подписан")
+                elif "Chat not found" in error_msg:
+                    logger.warning(f"⚠ Канал {i}: не найден (бот не админ?)")
+                elif "Forbidden" in error_msg:
+                    logger.warning(f"⚠ Канал {i}: нет доступа (бот не админ)")
+                else:
+                    logger.error(f"⚠ Канал {i}: ошибка {error_msg}")
         
-        # Проверка канала 2
-        try:
-            member2 = await context.bot.get_chat_member(chat_id=CHANNEL_ID_2, user_id=user_id)
-            subscribed2 = member2.status in ['member', 'administrator', 'creator']
-        except Exception as e2:
-            if "USER_NOT_PARTICIPANT" in str(e2) or "user not found" in str(e2).lower():
-                subscribed2 = False
-            else:
-                logger.error(f"Ошибка проверки канала 2: {e2}")
-                subscribed2 = False
-        
-        # Проверка канала 3
-        try:
-            member3 = await context.bot.get_chat_member(chat_id=CHANNEL_ID_3, user_id=user_id)
-            subscribed3 = member3.status in ['member', 'administrator', 'creator']
-        except Exception as e3:
-            if "USER_NOT_PARTICIPANT" in str(e3) or "user not found" in str(e3).lower():
-                subscribed3 = False
-            else:
-                logger.error(f"Ошибка проверки канала 3: {e3}")
-                subscribed3 = False
-        
-        # Должен быть подписан на ВСЕ три канала
-        return subscribed1 and subscribed2 and subscribed3
+        # Требуется подписка на ВСЕ каналы
+        result = subscribed_channels == total_channels
+        logger.info(f"Подписан на {subscribed_channels}/{total_channels} каналов: {'✅ ДОСТУП' if result else '❌ НЕТ ДОСТУПА'}")
+        return result
         
     except Exception as e:
         logger.error(f"Общая ошибка проверки подписки: {e}")
@@ -88,24 +89,21 @@ def add_request(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # Проверка подписки на все три канала
+    # Проверка подписки на все каналы
     is_subscribed = await check_subscription(user_id, context)
     
     if not is_subscribed:
-        keyboard = [
-            [InlineKeyboardButton("📢 Канал 1", url=CHANNEL_LINK_1)],
-            [InlineKeyboardButton("📢 Канал 2", url=CHANNEL_LINK_2)],
-            [InlineKeyboardButton("📢 Канал 3", url=CHANNEL_LINK_3)],
-            [InlineKeyboardButton("🔄 Проверить подписку", callback_data='force_check')]
-        ]
+        # Создаем кнопки для всех каналов (максимум 8 кнопок в ряду для лучшего отображения)
+        keyboard = []
+        for name, link in CHANNEL_LINKS:
+            keyboard.append([InlineKeyboardButton(name, url=link)])
+        keyboard.append([InlineKeyboardButton("🔄 Проверить подписку", callback_data='force_check')])
+        
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         message_text = (
-            "🔒 Для доступа к боту подпишитесь на все три канала!\n\n"
-            "1. Первый канал\n"
-            "2. Второй канал\n"
-            "3. Третий канал\n\n"
-            "После подписки нажмите 'Проверить подписку'"
+            "🔒 ДЛЯ ДОСТУПА ПОДПИШИСЬ НА ВСЕ 7 КАНАЛОВ!\n\n"
+            "📌 После подписки нажми 'Проверить подписку'"
         )
         
         await update.message.reply_text(
@@ -139,17 +137,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         is_subscribed = await check_subscription(user_id, context)
         
         if not is_subscribed:
-            keyboard = [
-                [InlineKeyboardButton("📢 Канал 1", url=CHANNEL_LINK_1)],
-                [InlineKeyboardButton("📢 Канал 2", url=CHANNEL_LINK_2)],
-                [InlineKeyboardButton("📢 Канал 3", url=CHANNEL_LINK_3)],
-                [InlineKeyboardButton("🔄 Проверить подписку", callback_data='force_check')]
-            ]
+            # Создаем кнопки для всех каналов
+            keyboard = []
+            for name, link in CHANNEL_LINKS:
+                keyboard.append([InlineKeyboardButton(name, url=link)])
+            keyboard.append([InlineKeyboardButton("🔄 Проверить подписку", callback_data='force_check')])
+            
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             message_text = (
-                "❌ Вы не подписаны на все три канала!\n\n"
-                "Подпишитесь на все каналы и попробуйте снова."
+                "❌ ТЫ НЕ ПОДПИСАН НА ВСЕ 7 КАНАЛОВ!\n\n"
+                "Требуется подписка на все каналы.\n"
+                "Подпишись и попробуй снова."
             )
             
             await query.edit_message_text(
@@ -309,11 +308,14 @@ user_requests = {}
 
 def main():
     print("=" * 60)
-    print("БОТ ЗАПУЩЕН С ТРЕМЯ КАНАЛАМИ")
-    print(f"Канал 1 ID: {CHANNEL_ID_1}")
-    print(f"Канал 2 ID: {CHANNEL_ID_2}")
-    print(f"Канал 3 ID: {CHANNEL_ID_3}")
-    print("Требуется подписка на ВСЕ три канала")
+    print("БОТ ЗАПУЩЕН С 7 КАНАЛАМИ")
+    print(f"Всего каналов для подписки: {len(CHANNEL_IDS)}")
+    print("Требуется подписка на ВСЕ 7 каналов")
+    print("=" * 60)
+    print("ВАЖНОЕ ЗАМЕЧАНИЕ:")
+    print("1. Для приватных каналов (1-6) бот должен быть АДМИНИСТРАТОРОМ")
+    print("2. Для публичного канала (7) бот может проверять без прав админа")
+    print("3. Добавь бота @Snoztt_bot как админа в каналы 1-6")
     print("=" * 60)
     
     application = Application.builder().token(TOKEN).build()
