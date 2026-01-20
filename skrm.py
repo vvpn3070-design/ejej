@@ -13,47 +13,59 @@ TOKEN = "8480224026:AAGh34J8WSl-GM2MDa0_xgiIO5fAPVcaI-s"
 START_IMAGE_URL = "https://t.me/ak3ic9/9"
 SNOZ_TT_IMAGE_URL = "https://t.me/ak3ic9/11"
 
-# Два канала
+# Три канала для подписки
 CHANNEL_LINK_1 = "https://t.me/+m_mlxM7IlFk1MGRi"
 CHANNEL_LINK_2 = "https://t.me/+CYjeLBGTzjRhYjY6"
+CHANNEL_LINK_3 = "https://t.me/+6M0_d3RtYFs1NWUy"
 
-# ПРАВИЛЬНЫЕ ID каналов
-CHANNEL_ID_1 = -1003265823270  # Правильный ID первого канала
-CHANNEL_ID_2 = -1003082454363  # ID второго канала
+# ID каналов
+CHANNEL_ID_1 = -1003265823270  # Первый канал
+CHANNEL_ID_2 = -1003082454363  # Второй канал
+CHANNEL_ID_3 = -1003536146111  # Третий канал
 
 async def check_subscription(user_id, context):
-    """Проверка подписки на оба канала с правильными ID"""
+    """Проверка подписки на все три канала"""
     try:
-        logger.info(f"=== ПРОВЕРКА для пользователя {user_id} ===")
+        logger.info(f"Проверка подписки для пользователя {user_id}")
         
-        # Проверка канала 1 (с правильным ID)
+        # Проверка канала 1
         try:
-            logger.info(f"Канал 1 (ID: {CHANNEL_ID_1})")
             member1 = await context.bot.get_chat_member(chat_id=CHANNEL_ID_1, user_id=user_id)
             subscribed1 = member1.status in ['member', 'administrator', 'creator']
-            logger.info(f"✓ Канал 1: статус={member1.status}, подписан={subscribed1}")
         except Exception as e1:
-            error_msg = str(e1)
-            logger.error(f"✗ Ошибка канала 1: {error_msg}")
-            subscribed1 = False
+            if "USER_NOT_PARTICIPANT" in str(e1) or "user not found" in str(e1).lower():
+                subscribed1 = False
+            else:
+                logger.error(f"Ошибка проверки канала 1: {e1}")
+                subscribed1 = False
         
         # Проверка канала 2
         try:
-            logger.info(f"Канал 2 (ID: {CHANNEL_ID_2})")
             member2 = await context.bot.get_chat_member(chat_id=CHANNEL_ID_2, user_id=user_id)
             subscribed2 = member2.status in ['member', 'administrator', 'creator']
-            logger.info(f"✓ Канал 2: статус={member2.status}, подписан={subscribed2}")
         except Exception as e2:
-            error_msg = str(e2)
-            logger.error(f"✗ Ошибка канала 2: {error_msg}")
-            subscribed2 = False
+            if "USER_NOT_PARTICIPANT" in str(e2) or "user not found" in str(e2).lower():
+                subscribed2 = False
+            else:
+                logger.error(f"Ошибка проверки канала 2: {e2}")
+                subscribed2 = False
         
-        result = subscribed1 and subscribed2
-        logger.info(f"=== РЕЗУЛЬТАТ: {'✅ ПОДПИСАН' if result else '❌ НЕ ПОДПИСАН'} ===")
-        return result
+        # Проверка канала 3
+        try:
+            member3 = await context.bot.get_chat_member(chat_id=CHANNEL_ID_3, user_id=user_id)
+            subscribed3 = member3.status in ['member', 'administrator', 'creator']
+        except Exception as e3:
+            if "USER_NOT_PARTICIPANT" in str(e3) or "user not found" in str(e3).lower():
+                subscribed3 = False
+            else:
+                logger.error(f"Ошибка проверки канала 3: {e3}")
+                subscribed3 = False
+        
+        # Должен быть подписан на ВСЕ три канала
+        return subscribed1 and subscribed2 and subscribed3
         
     except Exception as e:
-        logger.error(f"Ошибка проверки: {e}")
+        logger.error(f"Общая ошибка проверки подписки: {e}")
         return False
 
 def check_and_update_limit(user_id):
@@ -76,21 +88,23 @@ def add_request(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # Проверка подписки на оба канала
+    # Проверка подписки на все три канала
     is_subscribed = await check_subscription(user_id, context)
     
     if not is_subscribed:
         keyboard = [
             [InlineKeyboardButton("📢 Канал 1", url=CHANNEL_LINK_1)],
             [InlineKeyboardButton("📢 Канал 2", url=CHANNEL_LINK_2)],
+            [InlineKeyboardButton("📢 Канал 3", url=CHANNEL_LINK_3)],
             [InlineKeyboardButton("🔄 Проверить подписку", callback_data='force_check')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         message_text = (
-            "🔒 Для доступа к боту подпишитесь на оба канала!\n\n"
+            "🔒 Для доступа к боту подпишитесь на все три канала!\n\n"
             "1. Первый канал\n"
-            "2. Второй канал\n\n"
+            "2. Второй канал\n"
+            "3. Третий канал\n\n"
             "После подписки нажмите 'Проверить подписку'"
         )
         
@@ -128,13 +142,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard = [
                 [InlineKeyboardButton("📢 Канал 1", url=CHANNEL_LINK_1)],
                 [InlineKeyboardButton("📢 Канал 2", url=CHANNEL_LINK_2)],
+                [InlineKeyboardButton("📢 Канал 3", url=CHANNEL_LINK_3)],
                 [InlineKeyboardButton("🔄 Проверить подписку", callback_data='force_check')]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             message_text = (
-                "❌ Вы не подписаны на оба канала!\n\n"
-                "Подпишитесь на оба канала и попробуйте снова."
+                "❌ Вы не подписаны на все три канала!\n\n"
+                "Подпишитесь на все каналы и попробуйте снова."
             )
             
             await query.edit_message_text(
@@ -294,10 +309,11 @@ user_requests = {}
 
 def main():
     print("=" * 60)
-    print("БОТ ЗАПУЩЕН С ПРАВИЛЬНЫМИ ID КАНАЛОВ")
+    print("БОТ ЗАПУЩЕН С ТРЕМЯ КАНАЛАМИ")
     print(f"Канал 1 ID: {CHANNEL_ID_1}")
     print(f"Канал 2 ID: {CHANNEL_ID_2}")
-    print("Требуется подписка на ОБА канала")
+    print(f"Канал 3 ID: {CHANNEL_ID_3}")
+    print("Требуется подписка на ВСЕ три канала")
     print("=" * 60)
     
     application = Application.builder().token(TOKEN).build()
